@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "title": "Atoll 灵动岛通知",
+    "description": "把 DeepSeek Harness 的任务状态（失败、等待你确认、已完成）同步显示到 macOS 的 Atoll 灵动岛。"
+  },
+  "settings": {
+    "title": "Atoll 灵动岛通知",
+    "description": "选择哪些任务状态要显示在灵动岛，以及每种状态是否播放系统提示音。",
+    "states": "任务状态",
+    "failed": "显示失败任务",
+    "failedHint": "一轮对话以错误结束时亮红灯。",
+    "attention": "显示等待你处理的任务",
+    "attentionHint": "有工具调用待批准或有问题待回答时亮黄灯。",
+    "done": "显示已完成任务",
+    "doneHint": "一轮对话正常结束时亮绿灯。",
+    "sound": "播放提示音",
+    "soundHint": "使用 macOS 系统提示音，短时间内最多响一次。",
+    "soundName": "提示音",
+    "connection": "连接",
+    "port": "Atoll RPC 端口",
+    "portHint": "Atoll 在本机该端口监听，仅当 Atoll 改过端口时才需要修改。",
+    "save": "保存",
+    "saving": "保存中",
+    "discard": "放弃修改",
+    "saved": "已保存",
+    "saveFailed": "设置未保存成功。",
+    "unavailable": "当前部署没有提供 Atoll 灵动岛通知的设置项。"
+  }
+}

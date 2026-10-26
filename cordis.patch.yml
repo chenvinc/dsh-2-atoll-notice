@@ -1,0 +1,4 @@
+- insert:
+    - id: atoll-notice
+      name: dsh-2-atoll-notice
+      config: {}

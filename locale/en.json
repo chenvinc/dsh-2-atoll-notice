@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "title": "Atoll Notices",
+    "description": "Mirrors DeepSeek Harness task states - failed, waiting for you, and finished - in the Atoll Dynamic Island on macOS."
+  },
+  "settings": {
+    "title": "Atoll Notices",
+    "description": "Choose which task states reach the Dynamic Island and whether a sound plays for each one.",
+    "states": "Task states",
+    "failed": "Show failed tasks",
+    "failedHint": "A red notice while a turn ends with an error.",
+    "attention": "Show tasks waiting for you",
+    "attentionHint": "A yellow notice while an approval or a question needs an answer.",
+    "done": "Show finished tasks",
+    "doneHint": "A green notice when a turn finishes without an error.",
+    "sound": "Play a sound",
+    "soundHint": "Uses a macOS system alert sound; at most one every few seconds.",
+    "soundName": "Sound",
+    "connection": "Connection",
+    "port": "Atoll RPC port",
+    "portHint": "Atoll listens on this local port; change it only if Atoll was reconfigured.",
+    "save": "Save",
+    "saving": "Saving",
+    "discard": "Discard",
+    "saved": "Saved",
+    "saveFailed": "The settings were not saved.",
+    "unavailable": "The Atoll Notices settings are not served by this deployment."
+  }
+}
