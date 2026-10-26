@@ -10,6 +10,8 @@
  * Nothing in this plugin may break a session: Atoll absence, a hostile
  * settings request, or a broken payload all degrade to a quiet no-op.
  */
+import { appendFileSync } from 'node:fs'
+
 import z from '@deepseek-ai/schemastery'
 
 import { AtollClient } from './lib/atoll.js'
@@ -21,6 +23,22 @@ import { mergeSettings, pickSettingsPatch, readSettingsFile, resolveSettingsPath
 import { createRateLimiter, playNoticeSound } from './lib/sound.js'
 import { NoticeStore } from './lib/state.js'
 import { registerAtollNoticeTools } from './lib/tools.js'
+
+/**
+ * Filesystem breadcrumb trail. The Host keeps its own log in the launching
+ * terminal, which the GUI user cannot easily hand back, so module load and
+ * apply() leave a few lines under ~/.dsh.
+ */
+const TRACE_FILE = process.env.DSH_ATOLL_NOTICE_TRACE ?? `${process.env.HOME ?? '/tmp'}/.dsh/atoll-notice-trace.log`
+function trace(stage, detail) {
+  try {
+    const suffix = detail === undefined ? '' : ` ${JSON.stringify(detail)}`
+    appendFileSync(TRACE_FILE, `${new Date().toISOString()} ${stage}${suffix}\n`)
+  } catch {
+    // Diagnostics must never break the plugin.
+  }
+}
+trace('module-loaded', { pid: process.pid })
 
 /** Stable id of the Atoll live activity that carries the status line. */
 export const ACTIVITY_ID = 'dsh-status'
@@ -72,6 +90,20 @@ function profileContextDir(ctx) {
 }
 
 export function apply(ctx, config) {
+  const probe = (key) => {
+    try {
+      return Boolean(typeof ctx.get === 'function' ? ctx.get(key) : undefined)
+    } catch (error) {
+      return `error:${String(error)}`
+    }
+  }
+  trace('apply-enter', {
+    webServer: probe('webServer'),
+    tools: probe('tools'),
+    clientModules: probe('clientModules'),
+    profile: probe('profileContext'),
+  })
+
   const base = resolveConfig(config)
   const logger = makeLogger(ctx)
   const store = new NoticeStore()
@@ -308,6 +340,57 @@ export function apply(ctx, config) {
     })
     .catch((error) => logger.warn(`atoll-notice: settings load failed: ${String(error)}`))
 
+  /**
+   * Describe how the Host composed this plugin's two halves. The browser half is
+   * discovered by the `clientModules` service; when it is missing from the table
+   * the settings card cannot exist, so this is the first thing to check.
+   */
+  const readDiagnostics = () => {
+    /** @type {Record<string, unknown>} */
+    const out = { package: 'dsh-2-atoll-notice', clientEntry: './client.js' }
+    let registry
+    try {
+      registry = typeof ctx.get === 'function' ? ctx.get('clientModules') : undefined
+    } catch (error) {
+      out.clientModulesError = String(error)
+    }
+    const table = registry?.table
+    out.clientModules = table instanceof Map ? [...table.keys()] : null
+    out.registryInfo = registry === undefined ? null : {
+      kind: Object.prototype.toString.call(registry),
+      keys: Object.keys(registry).slice(0, 24),
+      tableKind: Object.prototype.toString.call(table),
+      hasGraph: typeof registry.graph === 'function',
+      hasClientPath: typeof registry.clientPath === 'function',
+    }
+    const sources = registry?.sources
+    if (sources instanceof Map) {
+      out.sources = [...sources.values()].map((source) => ({
+        packageName: source?.packageName ?? null,
+        loaderName: source?.loaderName ?? null,
+        clientPath: source?.meta?.clientPath ?? null,
+      }))
+    }
+    const meta = registry?.pkgMeta
+    if (meta instanceof Map) {
+      out.pkgMeta = Object.fromEntries(
+        [...meta.entries()].map(([key, value]) => [key, value === undefined ? null : { clientPath: value.clientPath ?? null }]),
+      )
+    }
+    try {
+      const entries = typeof ctx.loader?.entries === 'function' ? [...ctx.loader.entries()] : []
+      out.loaderEntries = entries
+        .map((entry) => ({
+          name: entry?.options?.name ?? null,
+          baseUrl: entry?.parent?.tree?.ctx?.baseUrl ?? null,
+        }))
+        .filter((entry) => entry.name !== null)
+    } catch (error) {
+      out.loaderEntriesError = String(error)
+    }
+    return out
+  }
+
   try {
     const webServer = typeof ctx.get === 'function' ? ctx.get('webServer') : undefined
     if (webServer && typeof webServer.register === 'function') {
@@ -315,12 +398,16 @@ export function apply(ctx, config) {
         readSettings: publicSettings,
         writeSettings: updateSettings,
         readStatus: () => ({ ...mirrorState(), counts: store.snapshot().counts }),
+        readDiagnostics,
+        reportClient: (payload) => trace('client-report', payload),
         logger,
       })
       for (const route of routes) push(webServer.register(route))
+      trace('routes-mounted', { count: routes.length })
       logger.debug?.(`atoll-notice: settings API mounted at ${API_PREFIX}`)
     }
   } catch (error) {
+    trace('routes-failed', String(error))
     logger.warn(`atoll-notice: settings API unavailable: ${String(error)}`)
   }
 
@@ -351,7 +438,10 @@ export function apply(ctx, config) {
         disposeTools = typeof dispose === 'function' ? dispose : () => {}
       })
       // warn, not debug: a failed registration silently removes every agent tool.
-      .catch((error) => logger.warn?.(`atoll-notice: tools unavailable: ${String(error)}`))
+      .catch((error) => {
+        trace('tools-failed', String(error))
+        logger.warn?.(`atoll-notice: tools unavailable: ${String(error)}`)
+      })
     return () => {
       disposed = true
       clearInterval(pruneTimer)

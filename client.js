@@ -21,6 +21,32 @@ window.__ModuleLoader__.load({
     Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 
     const react = require("react");
+
+    /**
+     * Tell the Host half how far this bundle got. A browser-side registration
+     * failure is invisible from the terminal, so the card posts two tiny
+     * same-origin beacons: the bundle ran, and the slot entry registered.
+     * @param {string} stage
+     * @param {unknown} [detail]
+     */
+    function beacon(stage, detail) {
+      try {
+        const body = JSON.stringify({
+          stage,
+          detail: detail === undefined ? null : String(detail && detail.stack ? detail.stack : detail),
+          at: new Date().toISOString(),
+        });
+        void fetch("api/atoll-notice/client-report", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body,
+          keepalive: true,
+        }).catch(() => {});
+      } catch {
+        /* a refused beacon must never break the card */
+      }
+    }
+    beacon("bundle-loaded");
     /** Element constructor; keeps the tree readable without JSX. */
     const h = react.createElement;
 
@@ -586,6 +612,7 @@ window.__ModuleLoader__.load({
      */
     function apply(ctx) {
       try {
+        beacon("apply-enter");
         const t = ctx.locale.bind(NS);
         try {
           ctx.effect(() => ctx.locale.register(NS, { zh, en }), "atoll-notice: dictionaries");
@@ -610,10 +637,13 @@ window.__ModuleLoader__.load({
               ),
             "atoll-notice: plugins card",
           );
+          beacon("card-registered");
         } catch (error) {
+          beacon("card-registration-failed", error);
           warn("card registration", error);
         }
       } catch (error) {
+        beacon("apply-failed", error);
         warn("apply", error);
       }
     }
