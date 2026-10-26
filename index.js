@@ -350,7 +350,8 @@ export function apply(ctx, config) {
       .then((dispose) => {
         disposeTools = typeof dispose === 'function' ? dispose : () => {}
       })
-      .catch((error) => logger.debug?.(`atoll-notice: tools unavailable: ${String(error)}`))
+      // warn, not debug: a failed registration silently removes every agent tool.
+      .catch((error) => logger.warn?.(`atoll-notice: tools unavailable: ${String(error)}`))
     return () => {
       disposed = true
       clearInterval(pruneTimer)
