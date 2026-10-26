@@ -114,6 +114,7 @@ export function apply(ctx, config) {
     client = new AtollClient({
       url: `ws://127.0.0.1:${runtime.port}`,
       bundleIdentifier: runtime.bundleIdentifier,
+      staleActivityIds: [ACTIVITY_ID],
       appName: runtime.appName,
       logger,
     })

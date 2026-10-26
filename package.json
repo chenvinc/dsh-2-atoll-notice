@@ -40,7 +40,8 @@
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "fake-atoll": "node scripts/fake-atoll.mjs"
+    "fake-atoll": "node scripts/fake-atoll.mjs",
+    "clear": "node scripts/clear-activities.mjs"
   },
   "dsh": {
     "engines": {

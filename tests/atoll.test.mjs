@@ -488,3 +488,38 @@ test('without a bundleIdentifier, start() reports through lastError', async (t) 
   assert.equal(harness.sockets.length, 0);
   assert.equal(harness.calls.length, 0);
 });
+
+test('dismisses activities a crashed run left behind, before presenting', async () => {
+  const harness = createHarness();
+  const client = createClient(harness, { staleActivityIds: [ACTIVITY_ID] });
+  client.start();
+  harness.latest().open();
+
+  await until(() => harness.callsOf('atoll.dismissLiveActivity').length > 0);
+  await until(() => harness.callsOf('atoll.requestAuthorization').length > 0);
+
+  const dismissals = harness.callsOf('atoll.dismissLiveActivity');
+  assert.equal(dismissals.length, 1, 'exactly one sweep per handshake');
+  assert.deepEqual(dismissals[0].params, {
+    activityID: ACTIVITY_ID,
+    bundleIdentifier: BUNDLE,
+  });
+  assert.ok(
+    harness.methods().indexOf('atoll.dismissLiveActivity') <
+      harness.methods().indexOf('atoll.presentLiveActivity') ||
+      !harness.methods().includes('atoll.presentLiveActivity'),
+    'the sweep runs before anything of ours is presented',
+  );
+  client.stop();
+});
+
+test('leaves foreign activities alone when no stale ids are configured', async () => {
+  const harness = createHarness();
+  const client = createClient(harness);
+  client.start();
+  harness.latest().open();
+  await until(() => harness.callsOf('atoll.requestAuthorization').length > 0);
+  await wait(20);
+  assert.equal(harness.callsOf('atoll.dismissLiveActivity').length, 0);
+  client.stop();
+});
