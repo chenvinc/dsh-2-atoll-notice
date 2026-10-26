@@ -15,6 +15,13 @@ test('every tool spec passes the real defineTool schema validation', () => {
   assert.equal(specs.length, 3)
   for (const spec of specs) {
     assert.doesNotThrow(() => defineTool(spec), `defineTool rejected ${spec.name}`)
+    // defineTool() invokes output.render unconditionally; a spec without one
+    // registers fine and then fails every single call at runtime.
+    const tool = defineTool(spec)
+    assert.equal(typeof tool.output.render, 'function', `${spec.name} has no output.render`)
+    const rendered = tool.output.render({}, { ok: true })
+    assert.ok(Array.isArray(rendered) && rendered.length > 0, `${spec.name} render returned nothing`)
+    assert.doesNotThrow(() => JSON.stringify(rendered), `${spec.name} render is not serialisable`)
   }
 })
 
@@ -29,4 +36,13 @@ test('defineTool rejects required: false, the trap that killed registration', ()
       }),
     /required must be true/,
   )
+})
+
+test('every tool executes and returns serialisable JSON', async () => {
+  for (const spec of toolSpecs(deps)) {
+    const tool = defineTool(spec)
+    const result = await tool.execute({}, {})
+    assert.equal(typeof result, 'object', `${spec.name} did not return an object`)
+    assert.doesNotThrow(() => JSON.stringify(result), `${spec.name} result is not serialisable`)
+  }
 })
