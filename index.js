@@ -374,7 +374,7 @@ export function apply(ctx, config) {
     const meta = registry?.pkgMeta
     if (meta instanceof Map) {
       out.pkgMeta = Object.fromEntries(
-        [...meta.entries()].map(([key, value]) => [key, value === undefined ? null : { clientPath: value.clientPath ?? null }]),
+        [...meta.entries()].map(([key, value]) => [key, value === undefined || value === null ? null : { clientPath: value.clientPath ?? null }]),
       )
     }
     try {
