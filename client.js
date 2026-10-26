@@ -642,6 +642,29 @@ window.__ModuleLoader__.load({
           beacon("card-registration-failed", error);
           warn("card registration", error);
         }
+        try {
+          ctx.effect(
+            () =>
+              ctx.slots.inject("settings.section", () =>
+                ctx.slots.register(
+                  {
+                    name: "settings.section",
+                    id: CARD_ID,
+                    order: CARD_ORDER,
+                    label: () => t("title"),
+                    locale: NS,
+                    inject: () => ({ atollNotice: FACE }),
+                  },
+                  AtollNoticeCard,
+                ),
+              ),
+            "atoll-notice: settings section",
+          );
+          beacon("section-registered");
+        } catch (error) {
+          beacon("section-registration-failed", error);
+          warn("section registration", error);
+        }
       } catch (error) {
         beacon("apply-failed", error);
         warn("apply", error);

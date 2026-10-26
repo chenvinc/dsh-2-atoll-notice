@@ -1,8 +1,26 @@
 # Settings card (browser half)
 
-`client.js` is the browser half: one card on the Plugins settings page with the four
-toggles the Host half honours — mirror failed, waiting-for-you and finished tasks,
-and the alert sound. No build step, no CSS file, no runtime npm dependency.
+`client.js` is the browser half: one settings page with the four toggles the Host
+half honours — mirror failed, waiting-for-you and finished tasks, and the alert
+sound. No build step, no CSS file, no runtime npm dependency.
+
+## Which slot, and why it matters
+
+The page registers twice, into two different slot contracts:
+
+- `settings.section` (primary) — a top-level entry in the settings navigation, next
+  to “内置插件” and “插件市场”. This is the surface deployments actually show; the
+  reference registration shape is
+  `/Users/chy/.npm/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai/dsh-client-ui-settings-models/lib/client.js`
+  (`name`/`id`/`order`/`label`/`inject` + component).
+- `plugins.item` (secondary) — a card in the Plugins page, for deployments that
+  ship `dsh-client-ui-plugin-manager`.
+
+Registering only `plugins.item` was the original bug: the slot exists in the
+runtime, the write succeeds, and nothing is ever rendered because this deployment
+does not show the Plugins page at all. Both registrations now post a beacon
+(`card-registered` / `section-registered`) to the Host so the outcome is observable
+in `~/.dsh/atoll-notice-trace.log` instead of only in the browser console.
 
 ## Module wrapper and slot contract
 

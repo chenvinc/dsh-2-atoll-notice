@@ -391,9 +391,20 @@ export function apply(ctx, config) {
     return out
   }
 
-  try {
-    const webServer = typeof ctx.get === 'function' ? ctx.get('webServer') : undefined
-    if (webServer && typeof webServer.register === 'function') {
+  /**
+   * Mount the same-origin JSON routes once the Host exposes its Web server.
+   * At cold start the Loader can apply a bundle plugin before the services it
+   * uses exist - that race is why the settings card went missing once - so both
+   * integration halves wait for their service instead of sampling it once.
+   * @param {import('@deepseek-ai/cordis').Context} webCtx context that owns `webServer`
+   */
+  const mountRoutes = (webCtx) => {
+    try {
+      const webServer = webCtx.webServer ?? webCtx.get?.('webServer')
+      if (!webServer || typeof webServer.register !== 'function') {
+        trace('routes-unavailable')
+        return
+      }
       const routes = createRoutes({
         readSettings: publicSettings,
         writeSettings: updateSettings,
@@ -402,13 +413,72 @@ export function apply(ctx, config) {
         reportClient: (payload) => trace('client-report', payload),
         logger,
       })
-      for (const route of routes) push(webServer.register(route))
-      trace('routes-mounted', { count: routes.length })
-      logger.debug?.(`atoll-notice: settings API mounted at ${API_PREFIX}`)
+      webCtx.effect(() => {
+        const mounted = routes.map((route) => webServer.register(route))
+        trace('routes-mounted', { count: routes.length })
+        logger.debug?.(`atoll-notice: settings API mounted at ${API_PREFIX}`)
+        return () => {
+          for (const dispose of mounted) {
+            try {
+              if (typeof dispose === 'function') dispose()
+            } catch {
+              /* teardown is best effort */
+            }
+          }
+        }
+      }, 'atoll-notice: settings API')
+    } catch (error) {
+      trace('routes-failed', String(error))
+      logger.warn(`atoll-notice: settings API unavailable: ${String(error)}`)
     }
-  } catch (error) {
-    trace('routes-failed', String(error))
-    logger.warn(`atoll-notice: settings API unavailable: ${String(error)}`)
+  }
+
+  /**
+   * Register the agent tools once the Host exposes its tool service.
+   * @param {import('@deepseek-ai/cordis').Context} toolsCtx context that owns `tools`
+   */
+  const mountTools = (toolsCtx) => {
+    let disposeTools = () => {}
+    let released = false
+    toolsCtx.effect(() => {
+      void registerAtollNoticeTools({
+        ctx: toolsCtx,
+        store,
+        mirror: {
+          show: (descriptor) => client?.show(descriptor),
+          flash: (descriptor, ms) => client?.flash(descriptor, ms),
+          state: mirrorState,
+        },
+        runtime: () => runtime,
+        logger,
+        activityId: ACTIVITY_ID,
+      })
+        .then((dispose) => {
+          const release = typeof dispose === 'function' ? dispose : () => {}
+          if (released) release()
+          else disposeTools = release
+          trace('tools-registered')
+        })
+        // warn, not debug: a failed registration silently removes every agent tool.
+        .catch((error) => {
+          trace('tools-failed', String(error))
+          logger.warn?.(`atoll-notice: tools unavailable: ${String(error)}`)
+        })
+      return () => {
+        released = true
+        disposeTools()
+      }
+    }, 'atoll-notice: agent tools')
+  }
+
+  if (typeof ctx.inject === 'function') {
+    // A missing service is not an error: a deployment without the Web carrier
+    // still mirrors states, and one without tools still serves its settings.
+    ctx.inject(['webServer'], mountRoutes)
+    ctx.inject(['tools'], mountTools)
+  } else {
+    mountRoutes(ctx)
+    mountTools(ctx)
   }
 
   ctx.effect(() => {
@@ -421,31 +491,9 @@ export function apply(ctx, config) {
       }
     }, 20_000)
     if (pruneTimer && typeof pruneTimer.unref === 'function') pruneTimer.unref()
-    let disposeTools = () => {}
-    void registerAtollNoticeTools({
-      ctx,
-      store,
-      mirror: {
-        show: (descriptor) => client?.show(descriptor),
-        flash: (descriptor, ms) => client?.flash(descriptor, ms),
-        state: mirrorState,
-      },
-      runtime: () => runtime,
-      logger,
-      activityId: ACTIVITY_ID,
-    })
-      .then((dispose) => {
-        disposeTools = typeof dispose === 'function' ? dispose : () => {}
-      })
-      // warn, not debug: a failed registration silently removes every agent tool.
-      .catch((error) => {
-        trace('tools-failed', String(error))
-        logger.warn?.(`atoll-notice: tools unavailable: ${String(error)}`)
-      })
     return () => {
       disposed = true
       clearInterval(pruneTimer)
-      disposeTools()
       for (const dispose of disposers) {
         try {
           dispose()

@@ -52,16 +52,23 @@
 
 ## 设置
 
-打开 **设置 → 插件**，底部会出现「Atoll 灵动岛通知」卡片，含四个开关：
+打开 **设置 → Atoll 通知**（设置面板左侧导航里的独立一项），含四个开关：
 
 - 显示失败任务（默认开）
 - 显示等待你处理的任务（默认开）
 - 显示已完成任务（默认开）
 - 播放提示音（默认关，使用系统提示音，最短间隔 1.5 秒）
 
-改动会即时生效并持久化到 `~/.dsh/profiles/<profile>/atoll-notice.json`（只保存你改过的字段）。Host 侧 API 是插件自己的两条路由：`GET/POST api/atoll-notice/settings`。
+这个页面用的是宿主设置面板的 `settings.section` 插槽，所以它和「内置插件」「插件市场」并列，而不是藏进某个插件列表里。插件同时也注册了 `plugins.item`，在带「插件」页的部署里会额外出现一张卡片。
 
-> 说明：宿主当前没有「按插件自动渲染配置表单」的能力（`configForms` 不对外），所以这张设置卡片是插件自带的前端，走自己的 HTTP 路由。没有可用的 Web 服务时，卡片会显示为不可用，Host 侧继续按 `cordis.patch.yml` / profile 里的配置工作。
+改动会即时生效并持久化到 `~/.dsh/profiles/<profile>/atoll-notice.json`（只保存你改过的字段）。Host 侧 API 是插件自己的四条路由：`GET/POST api/atoll-notice/settings`、`GET api/atoll-notice/status`、`GET api/atoll-notice/diagnostics`、`POST api/atoll-notice/client-report`。
+
+> 宿主没有「按插件自动渲染配置表单」的通用能力，所以这一页是插件自带的前端，走自己的 HTTP 路由。Host 半的两个服务（`webServer`、`tools`）都是在 `ctx.inject` 里等待就绪后再挂载的：冷启动时 Loader 可能先应用插件、后创建服务，早期版本因此出现过「路由 404、工具消失、设置页不出现」的现象。
+
+## 排查
+
+- 改动 Host 半（`index.js`、`lib/*.js`）后必须重启 `dsh web`；浏览器半（`client.js`）会被热替换，刷新页面即可。
+- 插件会把自身加载过程写进 `~/.dsh/atoll-notice-trace.log`：`module-loaded`、`apply-enter`（含四个服务是否就绪）、`routes-mounted`、`tools-registered`，以及浏览器回报的 `bundle-loaded` / `card-registered` / `section-registered`。设置页看不到卡片时先看这个文件。
 
 ## Agent 工具
 
