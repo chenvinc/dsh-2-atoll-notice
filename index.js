@@ -54,11 +54,29 @@ export const Config = z.object({
  * @param {import('@deepseek-ai/cordis').Context} ctx
  * @param {Partial<import('./lib/config.js').AtollNoticeConfig>} [config]
  */
+/**
+ * The Host exposes its own profile through the `profileContext` service; the
+ * plugin process environment does not carry it. Reading it keeps per-profile
+ * settings in the profile that actually runs the plugin.
+ *
+ * @param {any} ctx
+ * @returns {string|undefined}
+ */
+function profileContextDir(ctx) {
+  try {
+    const profile = ctx.get('profileContext')
+    return typeof profile?.dir === 'string' && profile.dir.length > 0 ? profile.dir : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function apply(ctx, config) {
   const base = resolveConfig(config)
   const logger = makeLogger(ctx)
   const store = new NoticeStore()
-  const settingsPath = resolveSettingsPath()
+  const profileDir = profileContextDir(ctx)
+  const settingsPath = resolveSettingsPath(process.env, undefined, profileDir)
 
   /** @type {Record<string, unknown>} user layer persisted in the profile. */
   let userLayer = {}
