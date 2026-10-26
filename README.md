@@ -53,9 +53,15 @@ git clone https://github.com/chenvinc/dsh-2-atoll-notice.git
 
 重启 `dsh web` 后生效。
 
-### 方式二：从 npm 安装
+### 方式二：从 npm 安装（推荐）
 
-发布到 npm 之后，在 Harness 的插件管理里安装 `dsh-2-atoll-notice` 即可（`package.json` 里的 `dsh.bundle` 会把 Host 半挂进 bundle patch，`dsh.client` 会把浏览器半挂进 Web GUI）。
+```bash
+npm install dsh-2-atoll-notice --save
+```
+
+或直接在 Harness 的插件管理里搜索安装 `dsh-2-atoll-notice`——`package.json` 里的 `dsh.bundle` 会把 Host 半挂进 bundle patch，`dsh.client` 会把浏览器半挂进 Web GUI。
+
+当前版本：[![npm version](https://img.shields.io/npm/v/dsh-2-atoll-notice.svg)](https://www.npmjs.com/package/dsh-2-atoll-notice)
 
 ### 前置检查
 

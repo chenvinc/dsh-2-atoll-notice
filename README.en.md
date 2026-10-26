@@ -53,9 +53,15 @@ In your profile directory (for example `~/.dsh/profiles/web`):
 
 Restart `dsh web`.
 
-### Option 2: install from npm
+### Option 2: install from npm (recommended)
 
-Once it is published, install `dsh-2-atoll-notice` from the Harness plugin manager: `dsh.bundle` mounts the Host half into the bundle patch and `dsh.client` mounts the browser half into the Web GUI.
+```bash
+npm install dsh-2-atoll-notice --save
+```
+
+Or install `dsh-2-atoll-notice` straight from the Harness plugin manager: `dsh.bundle` mounts the Host half into the bundle patch and `dsh.client` mounts the browser half into the Web GUI.
+
+Current release: [![npm version](https://img.shields.io/npm/v/dsh-2-atoll-notice.svg)](https://www.npmjs.com/package/dsh-2-atoll-notice)
 
 ### Before you start
 
