@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { after, test } from 'node:test'
 
 import { apply } from '../index.js'
 
@@ -30,6 +30,36 @@ function makeContext(services = {}) {
 }
 
 /**
+ * A WebSocket stand-in: the real one keeps an undici socket open after close,
+ * which would hold the test process alive. Nothing here needs to connect.
+ */
+function inertSocket() {
+  return {
+    readyState: 0,
+    addEventListener() {},
+    removeEventListener() {},
+    send() {},
+    close() {},
+  }
+}
+
+/** Config every test applies with, so `apply()` never opens a socket. */
+const inertConfig = { webSocket: inertSocket }
+
+/** Disposers handed out by scoped contexts; released in the `after` hook. */
+const scopedCleanups = []
+
+after(() => {
+  for (const dispose of scopedCleanups.splice(0)) {
+    try {
+      dispose()
+    } catch {
+      /* teardown is best effort */
+    }
+  }
+})
+
+/**
  * A scoped context as cordis hands it to an `inject` callback.
  * @param {Record<string, unknown>} services
  */
@@ -39,9 +69,11 @@ function scoped(services) {
     get: (key) => services[key],
     effect(fn) {
       const dispose = fn()
-      return () => {
+      const release = () => {
         if (typeof dispose === 'function') dispose()
       }
+      scopedCleanups.push(release)
+      return release
     },
     logger,
   }
@@ -56,7 +88,7 @@ test('cold start defers routes and tools until their services exist', async () =
     return () => {}
   }
 
-  apply(ctx, {})
+  apply(ctx, inertConfig)
 
   assert.equal(pending.length, 2, 'one injection per optional service')
   assert.deepEqual(
@@ -126,7 +158,7 @@ test('a host without ctx.inject mounts immediately from the live services', asyn
     },
   })
 
-  apply(ctx, {})
+  apply(ctx, inertConfig)
 
   assert.equal(routes.length, 4)
   await new Promise((resolve) => setTimeout(resolve, 100))

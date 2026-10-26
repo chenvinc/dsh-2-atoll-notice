@@ -64,6 +64,8 @@ window.__ModuleLoader__.load({
     const EDITABLE = ["failed", "attention", "done", "sound"];
     /** HTTP statuses that mean "this deployment does not mount the route". */
     const NOT_MOUNTED = new Set([404, 405, 501]);
+    /** Where users send feedback; the page links to it, the README repeats it. */
+    const ISSUES_URL = "https://github.com/chenvinc/dsh-2-atoll-notice/issues";
 
     // ----------------------------------------------------------------- strings
     /** English copy, matching locale/en.json where a key exists there. */
@@ -92,6 +94,9 @@ window.__ModuleLoader__.load({
       loadFailed: "The settings could not be read.",
       unavailable: "The Atoll Notices settings are not served by this deployment.",
       retry: "Retry",
+      feedbackLead: "Deliberately minimal: this plugin only mirrors task state into the Dynamic Island.",
+      feedback: "Ideas and bug reports are welcome in the GitHub Issues page.",
+      feedbackLink: "Open GitHub Issues →",
     };
     /** Simplified Chinese copy, matching locale/zh.json where a key exists there. */
     const zh = {
@@ -118,6 +123,9 @@ window.__ModuleLoader__.load({
       loadFailed: "读取设置失败。",
       unavailable: "当前部署没有提供 Atoll 灵动岛通知的设置项。",
       retry: "重试",
+      feedbackLead: "刻意做得极简：只把任务状态镜像到灵动岛，不接管任何工作。",
+      feedback: "有想法、遇到问题，都欢迎到 GitHub Issues 提意见。",
+      feedbackLink: "打开 GitHub Issues →",
     };
 
     /**
@@ -300,6 +308,8 @@ window.__ModuleLoader__.load({
     const COLOR_TERTIARY = "var(--dsw-alias-label-tertiary, #6b7280)";
     const COLOR_ERROR = "var(--dsw-alias-label-error, #b42318)";
     const COLOR_SUCCESS = "var(--dsw-alias-state-success-primary, #1a7f37)";
+    /** Link colour; falls back to a readable blue when the token is absent. */
+    const COLOR_ACCENT = "var(--dsw-alias-label-primary, #2563eb)";
     const COLOR_BRAND = "var(--dsw-alias-brand-primary, #4f6ef7)";
     const COLOR_BORDER = "var(--dsw-alias-border-subtle, rgba(0, 0, 0, 0.1))";
     const FONT_MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
@@ -322,6 +332,15 @@ window.__ModuleLoader__.load({
     const STYLE_ROW_TEXT = { display: "grid", gap: "2px", minWidth: 0 };
     const STYLE_ROW_LABEL = { color: COLOR_PRIMARY, fontSize: "13px", cursor: "pointer" };
     const STYLE_HINT = { margin: 0, color: COLOR_TERTIARY, fontSize: "12px", lineHeight: 1.5 };
+    /** The feedback footer sits under the save row, visually part of the card. */
+    const STYLE_FEEDBACK = {
+      display: "grid",
+      gap: "4px",
+      marginTop: "16px",
+      paddingTop: "12px",
+      borderTop: `1px solid ${COLOR_BORDER}`,
+    };
+    const STYLE_LINK = { color: COLOR_ACCENT, textDecoration: "none" };
     const STYLE_CHECK = { width: "16px", height: "16px", margin: "2px 0 0", accentColor: COLOR_BRAND, cursor: "pointer", flex: "none" };
     const STYLE_CONNECTION = {
       display: "grid",
@@ -586,6 +605,27 @@ window.__ModuleLoader__.load({
         { style: STYLE_ROOT, "data-atoll-notice": CARD_ID },
         h("p", { style: STYLE_DESCRIPTION, key: "description" }, t("description")),
         ...body,
+        h(
+          "div",
+          { style: STYLE_FEEDBACK, key: "feedback" },
+          h("p", { style: STYLE_HINT }, t("feedbackLead")),
+          h(
+            "p",
+            { style: STYLE_HINT },
+            t("feedback"),
+            " ",
+            h(
+              "a",
+              {
+                href: ISSUES_URL,
+                target: "_blank",
+                rel: "noreferrer noopener",
+                style: STYLE_LINK,
+              },
+              t("feedbackLink"),
+            ),
+          ),
+        ),
       );
     }
 

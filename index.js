@@ -161,13 +161,19 @@ export function apply(ctx, config) {
     if (client && key === clientKey) return
     if (client) void client.stop()
     clientKey = key
-    client = new AtollClient({
+    /** @type {Record<string, unknown>} */
+    const options = {
       url: `ws://127.0.0.1:${runtime.port}`,
       bundleIdentifier: runtime.bundleIdentifier,
       staleActivityIds: [ACTIVITY_ID],
       appName: runtime.appName,
       logger,
-    })
+    }
+    // Tests and embedders may supply a socket; production uses the global one.
+    if (typeof config?.webSocket === 'function') {
+      options.webSocket = config.webSocket
+    }
+    client = new AtollClient(options)
     client.start()
     lastDescriptor = null
     render()

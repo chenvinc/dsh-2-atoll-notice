@@ -1,7 +1,7 @@
 {
   "name": "dsh-2-atoll-notice",
   "version": "0.1.0",
-  "description": "Mirror DeepSeek Harness task states (failed / needs you / done) into the Atoll Dynamic Island on macOS.",
+  "description": "把 DeepSeek Harness 的任务状态（失败 / 待你处理 / 完成）镜像到 macOS 的 Atoll 灵动岛。仅提醒，不接管任务。",
   "type": "module",
   "main": "./index.js",
   "exports": {
@@ -28,7 +28,8 @@
     "atoll",
     "dynamic-island",
     "macos",
-    "notifications"
+    "notifications",
+    "notification"
   ],
   "license": "MIT",
   "repository": {
